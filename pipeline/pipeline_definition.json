@@ -1,0 +1,456 @@
+{
+  "name": "Paginated Report Batch Executor Pipeline",
+  "description": "Pipeline for executing paginated reports in batch mode with multiple parameter values. Supports 4 parameter sources: Semantic Model, Lakehouse, JSON, Warehouse",
+  "properties": {
+    "activities": [
+      {
+        "name": "Execute Report Batch",
+        "description": "Execute the paginated report batch executor notebook",
+        "type": "SynapseNotebook",
+        "dependsOn": [],
+        "policy": {
+          "timeout": "7.00:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "typeProperties": {
+          "notebook": {
+            "referenceName": "paginated_report_batch_executor",
+            "type": "NotebookReference"
+          },
+          "parameters": {
+            "workspace_id": {
+              "value": "@pipeline().parameters.workspace_id",
+              "type": "Expression"
+            },
+            "report_id": {
+              "value": "@pipeline().parameters.report_id",
+              "type": "Expression"
+            },
+            "output_format": {
+              "value": "@pipeline().parameters.output_format",
+              "type": "Expression"
+            },
+            "static_params": {
+              "value": "@pipeline().parameters.static_params",
+              "type": "Expression"
+            },
+            "special_param_name": {
+              "value": "@pipeline().parameters.special_param_name",
+              "type": "Expression"
+            },
+            "special_values_source": {
+              "value": "@pipeline().parameters.special_values_source",
+              "type": "Expression"
+            },
+            "semantic_model_workspace_id": {
+              "value": "@pipeline().parameters.semantic_model_workspace_id",
+              "type": "Expression"
+            },
+            "semantic_model_dataset_id": {
+              "value": "@pipeline().parameters.semantic_model_dataset_id",
+              "type": "Expression"
+            },
+            "semantic_model_dax_query": {
+              "value": "@pipeline().parameters.semantic_model_dax_query",
+              "type": "Expression"
+            },
+            "lakehouse_table": {
+              "value": "@pipeline().parameters.lakehouse_table",
+              "type": "Expression"
+            },
+            "lakehouse_category": {
+              "value": "@pipeline().parameters.lakehouse_category",
+              "type": "Expression"
+            },
+            "lakehouse_column": {
+              "value": "@pipeline().parameters.lakehouse_column",
+              "type": "Expression"
+            },
+            "lakehouse_filter": {
+              "value": "@pipeline().parameters.lakehouse_filter",
+              "type": "Expression"
+            },
+            "special_parameter_values": {
+              "value": "@pipeline().parameters.special_parameter_values",
+              "type": "Expression"
+            },
+            "warehouse_name": {
+              "value": "@pipeline().parameters.warehouse_name",
+              "type": "Expression"
+            },
+            "warehouse_table": {
+              "value": "@pipeline().parameters.warehouse_table",
+              "type": "Expression"
+            },
+            "warehouse_column": {
+              "value": "@pipeline().parameters.warehouse_column",
+              "type": "Expression"
+            },
+            "warehouse_category": {
+              "value": "@pipeline().parameters.warehouse_category",
+              "type": "Expression"
+            },
+            "archive_to_onelake": {
+              "value": "@pipeline().parameters.archive_to_onelake",
+              "type": "Expression"
+            },
+            "max_retries": {
+              "value": "@pipeline().parameters.max_retries",
+              "type": "Expression"
+            },
+            "export_timeout_seconds": {
+              "value": "@pipeline().parameters.export_timeout_seconds",
+              "type": "Expression"
+            },
+            "poll_interval_seconds": {
+              "value": "@pipeline().parameters.poll_interval_seconds",
+              "type": "Expression"
+            }
+          },
+          "snapshot": true,
+          "conf": {
+            "spark.dynamicAllocation.enabled": "true",
+            "spark.dynamicAllocation.minExecutors": "1",
+            "spark.dynamicAllocation.maxExecutors": "4"
+          },
+          "numExecutors": 2
+        }
+      },
+      {
+        "name": "Send Success Notification",
+        "description": "Send notification on successful execution",
+        "type": "WebActivity",
+        "dependsOn": [
+          {
+            "activity": "Execute Report Batch",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.00:05:00",
+          "retry": 2,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "typeProperties": {
+          "url": "@pipeline().parameters.notification_webhook_url",
+          "method": "POST",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "body": {
+            "value": "@json(concat('{\"status\":\"success\",\"message\":\"Paginated report batch execution completed successfully\",\"pipelineRunId\":\"', pipeline().RunId, '\",\"executionTime\":\"', utcNow(), '\",\"successCount\":', json(activity('Execute Report Batch').output.status.Output.result.exitValue).success_count, ',\"failCount\":', json(activity('Execute Report Batch').output.status.Output.result.exitValue).fail_count, ',\"totalSize\":\"', json(activity('Execute Report Batch').output.status.Output.result.exitValue).total_size_mb, ' MB\",\"fileCount\":', length(json(activity('Execute Report Batch').output.status.Output.result.exitValue).files), '}'))",
+            "type": "Expression"
+          }
+        }
+      },
+      {
+        "name": "Send Failure Notification",
+        "description": "Send notification on execution failure",
+        "type": "WebActivity",
+        "dependsOn": [
+          {
+            "activity": "Execute Report Batch",
+            "dependencyConditions": [
+              "Failed"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.00:05:00",
+          "retry": 2,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "typeProperties": {
+          "url": "@pipeline().parameters.notification_webhook_url",
+          "method": "POST",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "body": {
+            "value": "@json(concat('{\"status\":\"failed\",\"message\":\"Paginated report batch execution failed\",\"pipelineRunId\":\"', pipeline().RunId, '\",\"executionTime\":\"', utcNow(), '\",\"error\":\"', activity('Execute Report Batch').error.message, '\"}'))",
+            "type": "Expression"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "workspace_id": {
+        "type": "String",
+        "defaultValue": ""
+      },
+      "report_id": {
+        "type": "String",
+        "defaultValue": ""
+      },
+      "output_format": {
+        "type": "String",
+        "defaultValue": "PDF"
+      },
+      "static_params": {
+        "type": "String",
+        "defaultValue": "{}"
+      },
+      "special_param_name": {
+        "type": "String",
+        "defaultValue": "Customer"
+      },
+      "special_values_source": {
+        "type": "String",
+        "defaultValue": "semantic_model"
+      },
+      "semantic_model_workspace_id": {
+        "type": "String",
+        "defaultValue": ""
+      },
+      "semantic_model_dataset_id": {
+        "type": "String",
+        "defaultValue": ""
+      },
+      "semantic_model_dax_query": {
+        "type": "String",
+        "defaultValue": "EVALUATE DISTINCT('Table'[Column])"
+      },
+      "lakehouse_table": {
+        "type": "String",
+        "defaultValue": "parameter_config"
+      },
+      "lakehouse_category": {
+        "type": "String",
+        "defaultValue": ""
+      },
+      "lakehouse_column": {
+        "type": "String",
+        "defaultValue": "ParameterValue"
+      },
+      "lakehouse_filter": {
+        "type": "String",
+        "defaultValue": ""
+      },
+      "special_parameter_values": {
+        "type": "String",
+        "defaultValue": "[]"
+      },
+      "warehouse_name": {
+        "type": "String",
+        "defaultValue": ""
+      },
+      "warehouse_table": {
+        "type": "String",
+        "defaultValue": ""
+      },
+      "warehouse_column": {
+        "type": "String",
+        "defaultValue": "ParameterValue"
+      },
+      "warehouse_category": {
+        "type": "String",
+        "defaultValue": ""
+      },
+      "archive_to_onelake": {
+        "type": "String",
+        "defaultValue": "true"
+      },
+      "max_retries": {
+        "type": "String",
+        "defaultValue": "3"
+      },
+      "export_timeout_seconds": {
+        "type": "String",
+        "defaultValue": "600"
+      },
+      "poll_interval_seconds": {
+        "type": "String",
+        "defaultValue": "5"
+      },
+      "notification_webhook_url": {
+        "type": "String",
+        "defaultValue": ""
+      }
+    },
+    "variables": {
+      "execution_start_time": {
+        "type": "String"
+      },
+      "total_reports_processed": {
+        "type": "String"
+      }
+    },
+    "annotations": [],
+    "lastPublishTime": "2025-01-30T00:00:00Z"
+  },
+  "triggers": [
+    {
+      "name": "DailySchedule",
+      "description": "Run daily at 6:00 AM",
+      "type": "ScheduleTrigger",
+      "typeProperties": {
+        "recurrence": {
+          "frequency": "Day",
+          "interval": 1,
+          "schedule": {
+            "hours": [
+              6
+            ],
+            "minutes": [
+              0
+            ]
+          },
+          "timeZone": "Eastern Standard Time"
+        }
+      },
+      "pipelines": [
+        {
+          "pipelineReference": {
+            "referenceName": "Paginated Report Batch Executor Pipeline",
+            "type": "PipelineReference"
+          },
+          "parameters": {}
+        }
+      ]
+    },
+    {
+      "name": "WeeklySchedule",
+      "description": "Run every Monday at 8:00 AM",
+      "type": "ScheduleTrigger",
+      "typeProperties": {
+        "recurrence": {
+          "frequency": "Week",
+          "interval": 1,
+          "schedule": {
+            "hours": [
+              8
+            ],
+            "minutes": [
+              0
+            ],
+            "weekDays": [
+              "Monday"
+            ]
+          },
+          "timeZone": "Eastern Standard Time"
+        }
+      },
+      "pipelines": [
+        {
+          "pipelineReference": {
+            "referenceName": "Paginated Report Batch Executor Pipeline",
+            "type": "PipelineReference"
+          },
+          "parameters": {}
+        }
+      ]
+    },
+    {
+      "name": "MonthlySchedule",
+      "description": "Run on the first day of each month at 7:00 AM",
+      "type": "ScheduleTrigger",
+      "typeProperties": {
+        "recurrence": {
+          "frequency": "Month",
+          "interval": 1,
+          "schedule": {
+            "hours": [
+              7
+            ],
+            "minutes": [
+              0
+            ],
+            "monthDays": [
+              1
+            ]
+          },
+          "timeZone": "Eastern Standard Time"
+        }
+      },
+      "pipelines": [
+        {
+          "pipelineReference": {
+            "referenceName": "Paginated Report Batch Executor Pipeline",
+            "type": "PipelineReference"
+          },
+          "parameters": {}
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "version": "1.0",
+    "author": "Generated by Claude Code",
+    "created": "2025-01-30",
+    "description": "Complete pipeline definition for the Paginated Report Batch Executor framework"
+  },
+  "notes": {
+    "setup_instructions": [
+      "1. Import this pipeline definition into your Fabric workspace",
+      "2. Create the notebook 'paginated_report_batch_executor' in the same workspace",
+      "3. Configure pipeline parameters according to your data source (Semantic Model, Lakehouse, JSON, or Warehouse)",
+      "4. Set up your chosen parameter source (create tables, verify permissions, test queries)",
+      "5. (Optional) Configure notification webhook URL for Teams/Slack/Email notifications",
+      "6. Test with manual trigger using a small parameter set first",
+      "7. Verify files are created in OneLake (Files/reports/archive folder)",
+      "8. Enable desired trigger (Daily, Weekly, or Monthly) after successful testing",
+      "9. Monitor first few scheduled runs to ensure success"
+    ],
+    "parameter_examples": {
+      "semantic_model_example": {
+        "workspace_id": "12345678-1234-1234-1234-123456789abc",
+        "report_id": "87654321-4321-4321-4321-cba987654321",
+        "output_format": "PDF",
+        "static_params": "{\"start_date\":\"2024-01-01\",\"end_date\":\"2024-12-31\"}",
+        "special_param_name": "Customer",
+        "special_values_source": "semantic_model",
+        "semantic_model_workspace_id": "workspace-guid",
+        "semantic_model_dataset_id": "dataset-guid",
+        "semantic_model_dax_query": "EVALUATE FILTER(DISTINCT('DimCustomer'[CustomerName]), 'DimCustomer'[IsActive] = TRUE)",
+        "max_retries": "3",
+        "export_timeout_seconds": "600"
+      },
+      "lakehouse_example": {
+        "special_values_source": "lakehouse",
+        "lakehouse_table": "parameter_config",
+        "lakehouse_category": "MonthlyReportCustomers",
+        "lakehouse_column": "ParameterValue",
+        "lakehouse_filter": "",
+        "max_retries": "3"
+      },
+      "json_example": {
+        "special_values_source": "json",
+        "special_parameter_values": "[\"Acme Corp\",\"TechStart Inc\",\"Global Solutions\"]",
+        "max_retries": "3"
+      },
+      "warehouse_example": {
+        "special_values_source": "warehouse",
+        "warehouse_name": "EnterpriseWarehouse",
+        "warehouse_table": "dbo.ParameterConfig",
+        "warehouse_column": "ParameterValue",
+        "warehouse_category": "MonthlyReportCustomers",
+        "max_retries": "3"
+      }
+    },
+    "monitoring": {
+      "pipeline_runs": "Monitor in Fabric portal under Pipeline runs",
+      "notebook_output": "Access notebook output from pipeline activity details",
+      "onelake_files": "Check Files/reports/archive folder in Lakehouse for generated reports",
+      "notifications": "Review webhook endpoint for success/failure messages",
+      "execution_metrics": "Track success rates, failure rates, and execution times"
+    },
+    "troubleshooting": {
+      "notebook_timeout": "Increase timeout in activity policy (currently 7 hours) or adjust export_timeout_seconds",
+      "parameter_errors": "Verify parameter format matches expected JSON structure and all required parameters are provided",
+      "validation_errors": "Check that GUIDs are properly formatted and source type is valid",
+      "semantic_model_errors": "Verify DAX query syntax and permissions, ensure workspace and dataset IDs are correct",
+      "lakehouse_errors": "Ensure table exists and notebook has read access, check category name spelling",
+      "warehouse_errors": "Verify warehouse name, check connection and SELECT permissions",
+      "rate_limiting": "If seeing throttling errors, reduce concurrency or increase poll intervals"
+    }
+  }
+}

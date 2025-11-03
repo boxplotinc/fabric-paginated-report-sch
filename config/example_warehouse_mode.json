@@ -1,0 +1,150 @@
+{
+  "description": "Example configuration using Fabric Warehouse table as parameter source",
+  "use_case": "Enterprise scenarios with existing SQL infrastructure, complex queries, or strict security requirements",
+  "pipeline_parameters": {
+    "report_id": "12345678-1234-1234-1234-123456789abc",
+    "workspace_id": "87654321-4321-4321-4321-cba987654321",
+    "output_format": "PDF",
+    "static_params": "{\"start_date\": \"2024-01-01\", \"end_date\": \"2024-12-31\", \"report_type\": \"Monthly Summary\"}",
+    "special_param_name": "Customer",
+    "special_values_source": "warehouse",
+    "warehouse_name": "EnterpriseWarehouse",
+    "warehouse_table": "dbo.ParameterConfig",
+    "warehouse_column": "ParameterValue",
+    "warehouse_category": "MonthlyReportCustomers",
+    "archive_to_onelake": "true",
+    "max_retries": "3",
+    "export_timeout_seconds": "600",
+    "poll_interval_seconds": "5"
+  },
+  "expected_behavior": {
+    "description": "Notebook will connect to Warehouse via SQL endpoint using managed identity and execute T-SQL query",
+    "query_generated": "SELECT ParameterValue FROM dbo.ParameterConfig WHERE IsActive = 1 AND Category = 'MonthlyReportCustomers' ORDER BY SortOrder",
+    "advantages": [
+      "Familiar T-SQL syntax",
+      "Integration with existing SQL Server infrastructure",
+      "Support for stored procedures",
+      "Strong row-level security (RLS) capabilities",
+      "Column-level security (CLS) support",
+      "Complex SQL logic (joins, CTEs, window functions)"
+    ],
+    "disadvantages": [
+      "Requires connection string management",
+      "Token handling complexity",
+      "Connection overhead vs Lakehouse",
+      "ODBC driver dependency"
+    ]
+  },
+  "setup_steps": [
+    "1. Create a Warehouse in your Fabric workspace",
+    "2. Create the ParameterConfig table using T-SQL (see sample schema below)",
+    "3. Insert parameter data",
+    "4. Ensure notebook/service principal has read access to Warehouse",
+    "5. Configure pipeline with the parameters above",
+    "6. Run the pipeline"
+  },
+  "warehouse_table_schema": {
+    "sql_script": "CREATE TABLE dbo.ParameterConfig (\n    ParameterID INT IDENTITY(1,1) PRIMARY KEY,\n    Category NVARCHAR(100) NOT NULL,\n    ParameterName NVARCHAR(200) NOT NULL,\n    ParameterValue NVARCHAR(500) NOT NULL,\n    Description NVARCHAR(1000),\n    IsActive BIT NOT NULL DEFAULT 1,\n    SortOrder INT NOT NULL DEFAULT 0,\n    CreatedBy NVARCHAR(100),\n    CreatedDate DATETIME2 DEFAULT GETDATE(),\n    ModifiedBy NVARCHAR(100),\n    ModifiedDate DATETIME2 DEFAULT GETDATE(),\n    AllowedUsers NVARCHAR(MAX),\n    ValidFrom DATETIME2,\n    ValidTo DATETIME2,\n    INDEX IX_Category_Active (Category, IsActive)\n);",
+    "required_columns": {
+      "Category": "NVARCHAR - Filter by this",
+      "ParameterValue": "NVARCHAR - The actual value",
+      "IsActive": "BIT - Enable/disable",
+      "SortOrder": "INT - Execution order"
+    }
+  },
+  "sample_insert_statements": {
+    "basic_insert": "INSERT INTO dbo.ParameterConfig (Category, ParameterName, ParameterValue, IsActive, SortOrder)\nVALUES ('MonthlyReportCustomers', 'Acme Corporation', 'Acme Corp', 1, 1)",
+    "bulk_insert": "INSERT INTO dbo.ParameterConfig (Category, ParameterName, ParameterValue, IsActive, SortOrder)\nVALUES \n    ('MonthlyReportCustomers', 'Acme Corp', 'Acme Corp', 1, 1),\n    ('MonthlyReportCustomers', 'TechStart Inc', 'TechStart Inc', 1, 2),\n    ('MonthlyReportCustomers', 'Global Solutions', 'Global Solutions', 1, 3)",
+    "with_metadata": "INSERT INTO dbo.ParameterConfig \n    (Category, ParameterName, ParameterValue, Description, IsActive, SortOrder, CreatedBy, ValidFrom, ValidTo)\nVALUES \n    ('QuarterlyReports', 'Q1 2025', 'Q1_2025', 'First quarter 2025 report', 1, 1, 'admin@company.com', '2025-01-01', '2025-03-31')"
+  },
+  "advanced_queries": {
+    "with_joins": {
+      "description": "Join with other tables for complex logic",
+      "query": "SELECT DISTINCT c.CustomerName\nFROM dbo.Customers c\nINNER JOIN dbo.Sales s ON c.CustomerID = s.CustomerID\nWHERE c.IsActive = 1 AND s.SalesDate >= DATEADD(MONTH, -12, GETDATE())\nORDER BY c.CustomerName"
+    },
+    "with_stored_procedure": {
+      "description": "Use stored procedure for complex parameter logic",
+      "create_proc": "CREATE PROCEDURE dbo.GetActiveCustomersForReporting\n    @Category NVARCHAR(100)\nAS\nBEGIN\n    SELECT ParameterValue\n    FROM dbo.ParameterConfig\n    WHERE Category = @Category \n        AND IsActive = 1\n        AND (ValidFrom IS NULL OR ValidFrom <= GETDATE())\n        AND (ValidTo IS NULL OR ValidTo >= GETDATE())\n    ORDER BY SortOrder\nEND",
+      "note": "Notebook code would need modification to call stored procedure"
+    },
+    "with_rls": {
+      "description": "Row-Level Security to limit which parameters users can see",
+      "create_function": "CREATE FUNCTION dbo.fn_ParameterSecurityPredicate(@AllowedUsers NVARCHAR(MAX))\nRETURNS TABLE\nWITH SCHEMABINDING\nAS\nRETURN\n    SELECT 1 AS Result\n    WHERE @AllowedUsers IS NULL \n        OR USER_NAME() IN (SELECT value FROM STRING_SPLIT(@AllowedUsers, ','))",
+      "create_policy": "CREATE SECURITY POLICY dbo.ParameterSecurityPolicy\nADD FILTER PREDICATE dbo.fn_ParameterSecurityPredicate(AllowedUsers)\nON dbo.ParameterConfig\nWITH (STATE = ON)"
+    },
+    "with_cte": {
+      "description": "Use CTE for complex filtering",
+      "query": "WITH RankedCustomers AS (\n    SELECT \n        c.CustomerName,\n        SUM(s.SalesAmount) as TotalSales,\n        ROW_NUMBER() OVER (ORDER BY SUM(s.SalesAmount) DESC) as Rank\n    FROM dbo.Customers c\n    INNER JOIN dbo.Sales s ON c.CustomerID = s.CustomerID\n    WHERE s.SalesDate >= DATEADD(YEAR, -1, GETDATE())\n    GROUP BY c.CustomerName\n)\nSELECT CustomerName\nFROM RankedCustomers\nWHERE Rank <= 10\nORDER BY Rank"
+    }
+  },
+  "connection_details": {
+    "sql_endpoint": "{workspace-name}.datawarehouse.fabric.microsoft.com",
+    "authentication": "Managed Identity (workspace identity)",
+    "driver": "ODBC Driver 18 for SQL Server",
+    "protocol": "TDS (Tabular Data Stream)",
+    "port": "1433 (default SQL Server port)",
+    "encryption": "Required (Encrypt=yes)"
+  },
+  "when_to_use": {
+    "good_for": [
+      "Enterprise environments with SQL Server background",
+      "Need for stored procedures",
+      "Complex SQL logic (joins, subqueries, CTEs)",
+      "Row-Level Security (RLS) requirements",
+      "Column-Level Security (CLS) requirements",
+      "Integration with existing SQL workflows",
+      "Need for ACID transactions",
+      "SQL-based audit requirements"
+    ],
+    "not_good_for": [
+      "Simple parameter lists (use Lakehouse or JSON instead)",
+      "Need for maximum performance (Lakehouse is faster)",
+      "Python/Spark-based workflows (Lakehouse integrates better)",
+      "Avoiding connection overhead"
+    ]
+  },
+  "performance_considerations": {
+    "connection_overhead": "Each query requires ODBC connection setup (~100-500ms)",
+    "token_refresh": "Managed identity token must be obtained for each connection",
+    "query_optimization": "Use indexes on Category and IsActive columns",
+    "minimize_connections": "Fetch all parameters in single query, not multiple queries",
+    "connection_pooling": "Not available in notebook context"
+  },
+  "security_best_practices": [
+    "Always use managed identity (never hardcode passwords)",
+    "Grant minimal permissions (SELECT only on required tables)",
+    "Implement Row-Level Security (RLS) if needed",
+    "Use Column-Level Security (CLS) to hide sensitive columns",
+    "Audit parameter access using Warehouse audit logs",
+    "Regular review of AllowedUsers lists",
+    "Use service principal for automated pipelines"
+  ],
+  "troubleshooting": {
+    "connection_failed": "Verify Warehouse name is correct and notebook has access",
+    "authentication_error": "Ensure managed identity is enabled and has read permissions",
+    "timeout": "Check if query is taking too long, add indexes if needed",
+    "driver_not_found": "ODBC Driver 18 should be pre-installed in Fabric notebooks",
+    "no_results": "Verify IsActive = 1 and Category matches exactly (case-sensitive in T-SQL)",
+    "permission_denied": "Grant SELECT permission: GRANT SELECT ON dbo.ParameterConfig TO [notebook-principal]"
+  },
+  "comparison_with_lakehouse": {
+    "performance": "Lakehouse is faster (native Spark vs ODBC connection)",
+    "ease_of_use": "Lakehouse is simpler (no connection string)",
+    "sql_features": "Warehouse supports more advanced T-SQL features",
+    "security": "Both support RLS, Warehouse also has CLS",
+    "maintenance": "Similar difficulty",
+    "cost": "Similar (both included in Fabric capacity)",
+    "recommendation": "Use Warehouse only if you need specific T-SQL features or RLS/CLS"
+  },
+  "migration_from_lakehouse": {
+    "reason": "Need T-SQL stored procedures or RLS/CLS",
+    "steps": [
+      "1. Create Warehouse and ParameterConfig table",
+      "2. Copy data from Lakehouse to Warehouse (use COPY INTO or notebook)",
+      "3. Implement RLS/CLS if needed",
+      "4. Change specialValuesSource to 'warehouse'",
+      "5. Configure warehouse parameters",
+      "6. Test thoroughly (connection issues are more common than Lakehouse)"
+    ]
+  }
+}

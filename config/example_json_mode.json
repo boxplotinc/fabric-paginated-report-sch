@@ -1,0 +1,117 @@
+{
+  "description": "Example configuration using direct JSON array as parameter source",
+  "use_case": "Simple, static list of parameters for testing or ad-hoc reports",
+  "pipeline_parameters": {
+    "report_id": "12345678-1234-1234-1234-123456789abc",
+    "workspace_id": "87654321-4321-4321-4321-cba987654321",
+    "output_format": "PDF",
+    "static_params": "{\"start_date\": \"2024-01-01\", \"end_date\": \"2024-12-31\", \"report_type\": \"Monthly Summary\"}",
+    "special_param_name": "Customer",
+    "special_values_source": "json",
+    "special_parameter_values": "[\"Acme Corp\", \"TechStart Inc\", \"Global Solutions\", \"Innovation Labs\", \"Metro Retail\"]",
+    "archive_to_onelake": "true",
+    "max_retries": "3",
+    "export_timeout_seconds": "600",
+    "poll_interval_seconds": "5"
+  },
+  "expected_behavior": {
+    "description": "Notebook will parse the JSON array directly and use values as parameters",
+    "advantages": [
+      "Simplest setup - no infrastructure needed",
+      "Perfect for testing and development",
+      "Good for static, small lists (< 50 items)",
+      "Easy to version control in pipeline code",
+      "No dependencies on external data sources"
+    ],
+    "disadvantages": [
+      "Not maintainable for large or dynamic lists",
+      "Requires pipeline changes to update values",
+      "No user-friendly interface for updates",
+      "No sorting or filtering capabilities"
+    ]
+  },
+  "setup_steps": [
+    "1. Create a JSON array with your parameter values",
+    "2. Validate JSON syntax (use jsonlint.com or similar)",
+    "3. Add to pipeline parameters as special_parameter_values",
+    "4. Set special_values_source = 'json'",
+    "5. Run the pipeline"
+  ],
+  "json_examples": {
+    "simple_list": "[\"Value1\", \"Value2\", \"Value3\"]",
+    "customer_list": "[\"Acme Corp\", \"TechStart Inc\", \"Global Solutions\"]",
+    "numeric_values": "[\"2022\", \"2023\", \"2024\"]",
+    "with_special_chars": "[\"O'Reilly Media\", \"AT&T\", \"Ben & Jerry's\"]",
+    "single_value": "[\"OnlyCustomer\"]",
+    "many_values": "[\"Cust1\", \"Cust2\", \"Cust3\", \"Cust4\", \"Cust5\", \"Cust6\", \"Cust7\", \"Cust8\", \"Cust9\", \"Cust10\"]"
+  },
+  "json_formatting_rules": {
+    "must_be_array": "Use square brackets []",
+    "must_use_double_quotes": "Use \" not ' for strings",
+    "comma_separated": "Separate values with commas",
+    "no_trailing_comma": "Don't add comma after last value",
+    "escape_quotes": "Use \\ to escape quotes in values: \\\"",
+    "escape_backslash": "Use \\\\ for literal backslash"
+  },
+  "valid_json_examples": {
+    "correct": "[\"Value1\", \"Value2\", \"Value3\"]",
+    "also_correct": "[\"Value with spaces\", \"Value-with-dashes\", \"Value_with_underscores\"]"
+  },
+  "invalid_json_examples": {
+    "single_quotes": "['Value1', 'Value2']  // ❌ Use double quotes",
+    "trailing_comma": "[\"Value1\", \"Value2\",]  // ❌ Remove trailing comma",
+    "missing_quotes": "[Value1, Value2]  // ❌ Strings must be quoted",
+    "not_array": "{\"key\": \"value\"}  // ❌ Must be array, not object"
+  },
+  "when_to_use": {
+    "good_for": [
+      "Testing and development",
+      "Proof of concept",
+      "One-time or ad-hoc reports",
+      "Very small lists (< 10 items)",
+      "Static values that rarely change",
+      "Demo or training scenarios"
+    ],
+    "not_good_for": [
+      "Production systems with many values",
+      "Lists that change frequently",
+      "Lists maintained by business users",
+      "Large parameter lists (> 50 items)",
+      "Dynamic or computed values"
+    ]
+  },
+  "migration_paths": {
+    "to_lakehouse": {
+      "reason": "Need business users to maintain values",
+      "steps": [
+        "1. Create parameter_config table in Lakehouse",
+        "2. Insert JSON values into table",
+        "3. Change special_values_source to 'lakehouse'",
+        "4. Configure lakehouse parameters"
+      ]
+    },
+    "to_semantic_model": {
+      "reason": "Need RLS or business logic",
+      "steps": [
+        "1. Identify semantic model with needed data",
+        "2. Write DAX query to extract values",
+        "3. Change special_values_source to 'semantic_model'",
+        "4. Configure semantic model parameters"
+      ]
+    }
+  },
+  "troubleshooting": {
+    "json_parse_error": "Validate JSON syntax at jsonlint.com",
+    "empty_array": "Ensure array has at least one value: [\"Value1\"]",
+    "unicode_characters": "Special characters should work, but test first",
+    "very_long_string": "Pipeline parameters have length limits (usually 4000 chars)"
+  },
+  "best_practices": [
+    "Always validate JSON before adding to pipeline",
+    "Keep values simple (avoid complex strings with many special characters)",
+    "Document the purpose of the list in pipeline description",
+    "Consider migrating to Lakehouse if list grows beyond 20-30 items",
+    "Test with a small subset first (2-3 values)",
+    "Use this as fallback source with json_fallback = true"
+  ]
+}

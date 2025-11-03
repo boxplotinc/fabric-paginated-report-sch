@@ -1,0 +1,92 @@
+{
+  "description": "Example configuration using Lakehouse Delta table as parameter source",
+  "use_case": "Data engineers maintain a parameter configuration table in Lakehouse",
+  "pipeline_parameters": {
+    "report_id": "12345678-1234-1234-1234-123456789abc",
+    "workspace_id": "87654321-4321-4321-4321-cba987654321",
+    "output_format": "PDF",
+    "static_params": "{\"start_date\": \"2024-01-01\", \"end_date\": \"2024-12-31\", \"report_type\": \"Monthly Summary\"}",
+    "special_param_name": "Customer",
+    "special_values_source": "lakehouse",
+    "lakehouse_table": "parameter_config",
+    "lakehouse_category": "MonthlyReportCustomers",
+    "lakehouse_column": "ParameterValue",
+    "lakehouse_filter": "",
+    "archive_to_onelake": "true",
+    "max_retries": "3",
+    "export_timeout_seconds": "600",
+    "poll_interval_seconds": "5",
+    "retry_backoff_base": "30",
+    "download_chunk_size_mb": "1",
+    "file_size_warning_mb": "500",
+    "connection_timeout_seconds": "30",
+    "download_timeout_seconds": "120",
+    "param_loader_retry_attempts": "3",
+    "param_loader_retry_delay_seconds": "5",
+    "token_refresh_interval_minutes": "45"
+  },
+  "performance_tuning_note": "The optional performance tuning parameters (downloadChunkSizeMb through tokenRefreshIntervalMinutes) have sensible defaults and only need to be adjusted for specific scenarios like very large files or slow networks. See README Advanced Features section for details.",
+  "expected_behavior": {
+    "description": "Notebook will query the Lakehouse parameter_config table using Spark SQL",
+    "query_generated": "SELECT ParameterValue FROM parameter_config WHERE IsActive = true AND Category = 'MonthlyReportCustomers' ORDER BY SortOrder",
+    "advantages": [
+      "Native Spark SQL integration (no connection strings)",
+      "Best performance for large parameter lists (1000+)",
+      "Easy maintenance via Lakehouse UI or notebooks",
+      "ACID compliance and version control (Delta Lake)",
+      "Zero authentication overhead"
+    ]
+  },
+  "setup_steps": [
+    "1. Run the setup/create_lakehouse_parameter_table.sql script in a Lakehouse notebook",
+    "2. Run the setup/sample_data.sql script to insert test data",
+    "3. Verify data: SELECT * FROM parameter_config WHERE Category = 'MonthlyReportCustomers'",
+    "4. Configure pipeline with the parameters above",
+    "5. Run the pipeline"
+  ],
+  "table_schema": {
+    "table_name": "parameter_config",
+    "required_columns": {
+      "Category": "STRING - Filter by this (e.g., 'MonthlyReportCustomers')",
+      "ParameterValue": "STRING - The actual value to use as parameter",
+      "IsActive": "BOOLEAN - Enable/disable without deleting",
+      "SortOrder": "INT - Control execution order"
+    },
+    "optional_columns": {
+      "ParameterName": "STRING - Descriptive name",
+      "Description": "STRING - User-friendly description",
+      "ValidFrom": "TIMESTAMP - Start date for validity",
+      "ValidTo": "TIMESTAMP - End date for validity"
+    }
+  },
+  "sample_data_operations": {
+    "insert_new_customer": "INSERT INTO parameter_config (Category, ParameterName, ParameterValue, IsActive, SortOrder) VALUES ('MonthlyReportCustomers', 'New Corp', 'New Corp', true, 10)",
+    "disable_customer": "UPDATE parameter_config SET IsActive = false WHERE ParameterValue = 'Old Corp' AND Category = 'MonthlyReportCustomers'",
+    "reorder_customers": "UPDATE parameter_config SET SortOrder = 5 WHERE ParameterValue = 'Priority Corp' AND Category = 'MonthlyReportCustomers'",
+    "delete_customer": "DELETE FROM parameter_config WHERE ParameterValue = 'Defunct Corp' AND Category = 'MonthlyReportCustomers'"
+  },
+  "advanced_filtering": {
+    "description": "Use lakehouseFilter parameter for additional WHERE clauses",
+    "examples": {
+      "filter_by_year": "Year = 2024",
+      "filter_by_date_range": "CreatedDate >= '2024-01-01' AND CreatedDate <= '2024-12-31'",
+      "filter_by_metadata": "Metadata LIKE '%priority%'",
+      "complex_filter": "IsActive = true AND ValidFrom <= CURRENT_TIMESTAMP() AND (ValidTo IS NULL OR ValidTo >= CURRENT_TIMESTAMP())"
+    }
+  },
+  "troubleshooting": {
+    "table_not_found": "Ensure the Lakehouse is attached to the notebook and the table exists",
+    "no_results": "Check that IsActive = true and Category matches exactly (case-sensitive)",
+    "wrong_order": "Verify SortOrder values are set correctly",
+    "permission_error": "Ensure the notebook has read access to the Lakehouse"
+  },
+  "best_practices": [
+    "Use descriptive Category names (e.g., 'MonthlyReportCustomers' not 'Customers')",
+    "Always set SortOrder to control execution sequence",
+    "Use IsActive instead of deleting rows (preserves history)",
+    "Add Description column for documentation",
+    "Use ValidFrom/ValidTo for time-based parameters",
+    "Partition table by Category for better performance",
+    "Regular maintenance: Archive old inactive parameters"
+  ]
+}

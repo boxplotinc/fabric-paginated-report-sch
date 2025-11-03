@@ -1,0 +1,58 @@
+{
+  "description": "Example configuration using Semantic Model (Power BI Dataset) as parameter source",
+  "use_case": "Business users want to use customer data from an existing Power BI report",
+  "pipeline_parameters": {
+    "report_id": "12345678-1234-1234-1234-123456789abc",
+    "workspace_id": "87654321-4321-4321-4321-cba987654321",
+    "output_format": "PDF",
+    "static_params": "{\"start_date\": \"2024-01-01\", \"end_date\": \"2024-12-31\", \"report_type\": \"Monthly Summary\"}",
+    "special_param_name": "Customer",
+    "special_values_source": "semantic_model",
+    "semantic_model_workspace_id": "workspace-guid-containing-semantic-model",
+    "semantic_model_dataset_id": "dataset-guid-of-semantic-model",
+    "semantic_model_dax_query": "EVALUATE FILTER(DISTINCT('DimCustomer'[CustomerName]), 'DimCustomer'[IsActive] = TRUE)",
+    "archive_to_onelake": "true",
+    "max_retries": "3",
+    "export_timeout_seconds": "600",
+    "poll_interval_seconds": "5",
+    "retry_backoff_base": "30",
+    "download_chunk_size_mb": "1",
+    "file_size_warning_mb": "500",
+    "connection_timeout_seconds": "30",
+    "download_timeout_seconds": "120",
+    "param_loader_retry_attempts": "3",
+    "param_loader_retry_delay_seconds": "5",
+    "token_refresh_interval_minutes": "45"
+  },
+  "performance_tuning_note": "Optional performance tuning parameters (downloadChunkSizeMb through tokenRefreshIntervalMinutes) have sensible defaults. Only adjust for specific scenarios. See README 'Advanced Features' section for details.",
+  "expected_behavior": {
+    "description": "Notebook will query the semantic model using DAX to get list of active customers",
+    "row_level_security": "Automatically enforced - users only see customers they have access to",
+    "advantages": [
+      "Uses trusted data from existing Power BI reports",
+      "Row-Level Security automatically applied",
+      "Includes business logic and relationships",
+      "Fast with semantic layer caching"
+    ]
+  },
+  "setup_steps": [
+    "1. Identify the Power BI semantic model (dataset) that contains your parameter data",
+    "2. Note the workspace GUID and dataset GUID",
+    "3. Write a DAX query to extract parameter values (see sample_semantic_model_queries.dax)",
+    "4. Test the DAX query in Power BI Desktop or DAX Studio",
+    "5. Configure pipeline with the parameters above",
+    "6. Run the pipeline"
+  ],
+  "sample_dax_queries": {
+    "all_customers": "EVALUATE DISTINCT('DimCustomer'[CustomerName])",
+    "active_customers": "EVALUATE FILTER(DISTINCT('DimCustomer'[CustomerName]), 'DimCustomer'[IsActive] = TRUE)",
+    "top_10_customers": "EVALUATE TOPN(10, SUMMARIZECOLUMNS('DimCustomer'[CustomerName], \"Sales\", SUM('FactSales'[Amount])), [Sales], DESC)",
+    "customers_with_recent_sales": "EVALUATE CALCULATETABLE(DISTINCT('DimCustomer'[CustomerName]), DATESINPERIOD('DimDate'[Date], TODAY(), -12, MONTH))"
+  },
+  "troubleshooting": {
+    "no_results": "Check that the DAX query returns data when tested in Power BI Desktop",
+    "permission_error": "Ensure the notebook/service principal has read access to the semantic model",
+    "token_error": "Verify that managed identity is enabled for the workspace",
+    "slow_performance": "Consider using DISTINCT instead of VALUES, and avoid complex calculations"
+  }
+}
