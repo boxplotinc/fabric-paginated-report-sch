@@ -1,6 +1,10 @@
 # Fabric Paginated Report Batch Executor
 
-A production-ready, generic framework for executing Microsoft Fabric paginated reports with parameter looping, supporting **four flexible parameter input methods**, OneLake storage, and full pipeline integration.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![GitHub Stars](https://img.shields.io/github/stars/boxplotinc/fabric-paginated-report-sch?style=social)](https://github.com/boxplotinc/fabric-paginated-report-sch/stargazers)
+[![GitHub Last Commit](https://img.shields.io/github/last-commit/boxplotinc/fabric-paginated-report-sch)](https://github.com/boxplotinc/fabric-paginated-report-sch/commits)
+
+A production-ready framework for **Microsoft Fabric** and **Power BI** paginated report automation. This Python-based batch executor enables automated generation of paginated reports with dynamic parameters from multiple data sources including **Lakehouse**, **Semantic Models**, **Warehouses**, and **JSON arrays**. Built for enterprise **data engineering** workflows with features like **retry logic**, **OneLake storage integration**, and **Azure pipeline orchestration** via REST API.
 
 ## Features
 

@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation
+    url: https://github.com/boxplotinc/fabric-paginated-report-sch/blob/main/README.md
+    about: Check the comprehensive README for setup instructions and examples
+  - name: Community Discussions
+    url: https://github.com/boxplotinc/fabric-paginated-report-sch/discussions
+    about: Join community discussions for general questions and ideas
