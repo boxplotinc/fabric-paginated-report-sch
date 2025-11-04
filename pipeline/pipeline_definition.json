@@ -37,12 +37,12 @@
               "value": "@pipeline().parameters.static_params",
               "type": "Expression"
             },
-            "special_param_name": {
-              "value": "@pipeline().parameters.special_param_name",
+            "report_partitioning_column": {
+              "value": "@pipeline().parameters.report_partitioning_column",
               "type": "Expression"
             },
-            "special_values_source": {
-              "value": "@pipeline().parameters.special_values_source",
+            "report_partitioning_source": {
+              "value": "@pipeline().parameters.report_partitioning_source",
               "type": "Expression"
             },
             "semantic_model_workspace_id": {
@@ -73,8 +73,8 @@
               "value": "@pipeline().parameters.lakehouse_filter",
               "type": "Expression"
             },
-            "special_parameter_values": {
-              "value": "@pipeline().parameters.special_parameter_values",
+            "report_partitioning_values": {
+              "value": "@pipeline().parameters.report_partitioning_values",
               "type": "Expression"
             },
             "warehouse_name": {
@@ -199,11 +199,11 @@
         "type": "String",
         "defaultValue": "{}"
       },
-      "special_param_name": {
+      "report_partitioning_column": {
         "type": "String",
         "defaultValue": "Customer"
       },
-      "special_values_source": {
+      "report_partitioning_source": {
         "type": "String",
         "defaultValue": "semantic_model"
       },
@@ -235,7 +235,7 @@
         "type": "String",
         "defaultValue": ""
       },
-      "special_parameter_values": {
+      "report_partitioning_values": {
         "type": "String",
         "defaultValue": "[]"
       },
@@ -406,8 +406,8 @@
         "report_id": "87654321-4321-4321-4321-cba987654321",
         "output_format": "PDF",
         "static_params": "{\"start_date\":\"2024-01-01\",\"end_date\":\"2024-12-31\"}",
-        "special_param_name": "Customer",
-        "special_values_source": "semantic_model",
+        "report_partitioning_column": "Customer",
+        "report_partitioning_source": "semantic_model",
         "semantic_model_workspace_id": "workspace-guid",
         "semantic_model_dataset_id": "dataset-guid",
         "semantic_model_dax_query": "EVALUATE FILTER(DISTINCT('DimCustomer'[CustomerName]), 'DimCustomer'[IsActive] = TRUE)",
@@ -415,7 +415,7 @@
         "export_timeout_seconds": "600"
       },
       "lakehouse_example": {
-        "special_values_source": "lakehouse",
+        "report_partitioning_source": "lakehouse",
         "lakehouse_table": "parameter_config",
         "lakehouse_category": "MonthlyReportCustomers",
         "lakehouse_column": "ParameterValue",
@@ -423,12 +423,12 @@
         "max_retries": "3"
       },
       "json_example": {
-        "special_values_source": "json",
-        "special_parameter_values": "[\"Acme Corp\",\"TechStart Inc\",\"Global Solutions\"]",
+        "report_partitioning_source": "json",
+        "report_partitioning_values": "[\"Acme Corp\",\"TechStart Inc\",\"Global Solutions\"]",
         "max_retries": "3"
       },
       "warehouse_example": {
-        "special_values_source": "warehouse",
+        "report_partitioning_source": "warehouse",
         "warehouse_name": "EnterpriseWarehouse",
         "warehouse_table": "dbo.ParameterConfig",
         "warehouse_column": "ParameterValue",

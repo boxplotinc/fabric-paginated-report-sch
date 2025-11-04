@@ -6,9 +6,9 @@
     "workspace_id": "87654321-4321-4321-4321-cba987654321",
     "output_format": "PDF",
     "static_params": "{\"start_date\": \"2024-01-01\", \"end_date\": \"2024-12-31\", \"report_type\": \"Monthly Summary\"}",
-    "special_param_name": "Customer",
-    "special_values_source": "json",
-    "special_parameter_values": "[\"Acme Corp\", \"TechStart Inc\", \"Global Solutions\", \"Innovation Labs\", \"Metro Retail\"]",
+    "report_partitioning_column": "Customer",
+    "report_partitioning_source": "json",
+    "report_partitioning_values": "[\"Acme Corp\", \"TechStart Inc\", \"Global Solutions\", \"Innovation Labs\", \"Metro Retail\"]",
     "archive_to_onelake": "true",
     "max_retries": "3",
     "export_timeout_seconds": "600",
@@ -33,8 +33,8 @@
   "setup_steps": [
     "1. Create a JSON array with your parameter values",
     "2. Validate JSON syntax (use jsonlint.com or similar)",
-    "3. Add to pipeline parameters as special_parameter_values",
-    "4. Set special_values_source = 'json'",
+    "3. Add to pipeline parameters as report_partitioning_values",
+    "4. Set report_partitioning_source = 'json'",
     "5. Run the pipeline"
   ],
   "json_examples": {

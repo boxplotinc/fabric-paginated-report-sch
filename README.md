@@ -79,7 +79,7 @@ Select one of the four parameter sources based on your needs:
 ```
 Pipeline (Scheduled/Manual Trigger)
   │
-  ├─ Parameters: report_id, static_params, special_values_source, etc.
+  ├─ Parameters: report_id, static_params, report_partitioning_source, etc.
   │
   ▼
 Fabric Notebook: Report Batch Executor
@@ -116,7 +116,7 @@ Fabric Notebook: Report Batch Executor
   │       └─ Warehouse (pyodbc + T-SQL)
   │
   ├─ Cell 9: Main Execution Loop
-  │   └─ FOR EACH special parameter value:
+  │   └─ FOR EACH partitioning parameter value:
   │       ├─ Merge static + special params
   │       ├─ Execute report (Power BI API)
   │       ├─ Poll & download
@@ -129,7 +129,7 @@ Fabric Notebook: Report Batch Executor
 
 ### Execution Flow
 
-1. **Parameter Loading**: Load special parameter values from configured source
+1. **Parameter Loading**: Load partitioning parameter values from configured source
 2. **Parameter Merging**: Combine static parameters with each special value
 3. **Report Generation**: Execute paginated report via Power BI REST API
 4. **File Storage**: Save to OneLake with date-based folder structure
@@ -153,7 +153,7 @@ Query data from Power BI semantic models using DAX.
 **Configuration:**
 ```json
 {
-  "special_values_source": "semantic_model",
+  "report_partitioning_source": "semantic_model",
   "semantic_model_workspace_id": "workspace-guid",
   "semantic_model_dataset_id": "dataset-guid",
   "semantic_model_dax_query": "EVALUATE FILTER(DISTINCT('DimCustomer'[CustomerName]), 'DimCustomer'[IsActive] = TRUE)"
@@ -220,7 +220,7 @@ INSERT INTO parameter_config VALUES
 **Configuration:**
 ```json
 {
-  "special_values_source": "lakehouse",
+  "report_partitioning_source": "lakehouse",
   "lakehouse_table": "parameter_config",
   "lakehouse_category": "MonthlyReportCustomers",
   "lakehouse_column": "ParameterValue",
@@ -245,8 +245,8 @@ Provide parameters directly as JSON array.
 **Configuration:**
 ```json
 {
-  "special_values_source": "json",
-  "special_parameter_values": "[\"Acme Corp\", \"TechStart Inc\", \"Global Solutions\"]"
+  "report_partitioning_source": "json",
+  "report_partitioning_values": "[\"Acme Corp\", \"TechStart Inc\", \"Global Solutions\"]"
 }
 ```
 
@@ -288,7 +288,7 @@ INSERT INTO dbo.ParameterConfig VALUES
 **Configuration:**
 ```json
 {
-  "special_values_source": "warehouse",
+  "report_partitioning_source": "warehouse",
   "warehouse_name": "EnterpriseWarehouse",
   "warehouse_table": "dbo.ParameterConfig",
   "warehouse_column": "ParameterValue",
@@ -372,8 +372,8 @@ Choose one of the four options:
   "workspace_id": "workspace-guid",
   "output_format": "PDF",
   "static_params": "{\"start_date\": \"2024-01-01\", \"end_date\": \"2024-12-31\"}",
-  "special_param_name": "Customer",
-  "special_values_source": "semantic_model",
+  "report_partitioning_column": "Customer",
+  "report_partitioning_source": "semantic_model",
   "semantic_model_workspace_id": "workspace-guid",
   "semantic_model_dataset_id": "dataset-guid",
   "semantic_model_dax_query": "EVALUATE FILTER(DISTINCT('DimCustomer'[CustomerName]), 'DimCustomer'[IsActive] = TRUE)",
@@ -407,8 +407,8 @@ VALUES
   "workspace_id": "workspace-guid",
   "output_format": "XLSX",
   "static_params": "{\"quarter\": \"Q1\", \"year\": \"2024\"}",
-  "special_param_name": "Region",
-  "special_values_source": "lakehouse",
+  "report_partitioning_column": "Region",
+  "report_partitioning_source": "lakehouse",
   "lakehouse_table": "parameter_config",
   "lakehouse_category": "QuarterlyRegions",
   "lakehouse_column": "ParameterValue"
@@ -430,9 +430,9 @@ VALUES
   "workspace_id": "workspace-guid",
   "output_format": "PDF",
   "static_params": "{\"start_date\": \"2024-01-01\", \"end_date\": \"2024-01-31\"}",
-  "special_param_name": "Customer",
-  "special_values_source": "json",
-  "special_parameter_values": "[\"Test Customer A\", \"Test Customer B\", \"Test Customer C\"]"
+  "report_partitioning_column": "Customer",
+  "report_partitioning_source": "json",
+  "report_partitioning_values": "[\"Test Customer A\", \"Test Customer B\", \"Test Customer C\"]"
 }
 ```
 
@@ -467,7 +467,7 @@ ON dbo.CustomerReporting WITH (STATE = ON);
 **Pipeline Parameters:**
 ```json
 {
-  "special_values_source": "warehouse",
+  "report_partitioning_source": "warehouse",
   "warehouse_name": "EnterpriseWarehouse",
   "warehouse_table": "dbo.CustomerReporting",
   "warehouse_column": "CustomerName",
@@ -489,8 +489,8 @@ ON dbo.CustomerReporting WITH (STATE = ON);
 | `report_id` | Paginated report GUID | `"87654321-4321-..."` |
 | `output_format` | Export format | `"PDF"`, `"XLSX"`, `"DOCX"` |
 | `static_params` | Fixed parameters (JSON) | `"{\"start_date\": \"2024-01-01\"}"` |
-| `special_param_name` | Parameter to loop through | `"Customer"` |
-| `special_values_source` | Parameter source type | `"semantic_model"`, `"lakehouse"`, `"json"`, `"warehouse"` |
+| `report_partitioning_column` | Parameter to loop through | `"Customer"` |
+| `report_partitioning_source` | Parameter source type | `"semantic_model"`, `"lakehouse"`, `"json"`, `"warehouse"` |
 
 ### Source-Specific Parameters
 
@@ -506,7 +506,7 @@ ON dbo.CustomerReporting WITH (STATE = ON);
 - `lakehouse_filter` (optional)
 
 **JSON:**
-- `special_parameter_values`
+- `report_partitioning_values`
 
 **Warehouse:**
 - `warehouse_name`
@@ -907,10 +907,10 @@ workspace_id = ""
 report_id = ""
 output_format = "PDF"
 static_params = "{}"
-special_param_name = "Customer"
+report_partitioning_column = "Customer"
 
 # Source configuration
-special_values_source = "semantic_model"  # or "lakehouse", "json", "warehouse"
+report_partitioning_source = "semantic_model"  # or "lakehouse", "json", "warehouse"
 
 # Semantic Model
 semantic_model_workspace_id = ""
@@ -924,7 +924,7 @@ lakehouse_column = "ParameterValue"
 lakehouse_filter = ""
 
 # JSON
-special_parameter_values = "[]"
+report_partitioning_values = "[]"
 
 # Warehouse
 warehouse_name = ""
